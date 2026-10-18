@@ -1,0 +1,18 @@
+# Build directories and binary artifacts
+build/
+bin/
+*.exe
+*.o
+*.obj
+*.out
+
+# Files excluded per your request
+README.md
+docs/progress/
+*progress*
+plan.md
+
+# Editor and IDE configurations
+.vscode/
+.vs/
+.idea/
