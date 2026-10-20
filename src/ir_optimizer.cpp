@@ -1,4 +1,5 @@
 #include "ir_optimizer.hpp"
+#include "dead_code_elimination.hpp"
 #include <climits>
 
 IROptimizer::IROptimizer(int maxPasses)
@@ -143,3 +144,10 @@ IRProgram IROptimizer::optimize(const IRProgram& program) {
 
     return optimized;
 }
+
+IRProgram IROptimizer::optimizeWithDCE(const IRProgram& program) {
+    IRProgram constFolded = optimize(program);
+    DeadCodeElimination dce(maxPasses_);
+    return dce.eliminate(constFolded);
+}
+

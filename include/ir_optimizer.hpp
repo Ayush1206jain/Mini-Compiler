@@ -43,8 +43,11 @@ class IROptimizer {
 public:
     explicit IROptimizer(int maxPasses = 10);
 
-    // Runs optimization on an IRProgram and returns a new optimized IRProgram
+    // Runs optimization on an IRProgram and returns a new optimized IRProgram (Day 4: Constant Propagation & Folding)
     IRProgram optimize(const IRProgram& program);
+
+    // Runs Day 4 optimizations followed by Day 5 Dead-Code Elimination
+    IRProgram optimizeWithDCE(const IRProgram& program);
 
     const OptimizationStats& getStats() const { return stats_; }
 
