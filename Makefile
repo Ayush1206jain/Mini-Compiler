@@ -1,4 +1,4 @@
-# Makefile for Mini Compiler — Day 4
+# Makefile for Mini Compiler — Day 6
 #
 # Usage:
 #   make              — Build everything (compiler and all tests)
@@ -10,15 +10,17 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
 BUILD_DIR = build
 
-SOURCES = src/lexer.cpp src/parser.cpp src/ir.cpp src/ir_generator.cpp src/ir_interpreter.cpp src/ir_optimizer.cpp
+SOURCES = src/lexer.cpp src/parser.cpp src/ir.cpp src/ir_generator.cpp src/ir_interpreter.cpp src/ir_optimizer.cpp src/dead_code_elimination.cpp src/pseudo_assembly_generator.cpp src/instruction_count_analyzer.cpp src/pipeline_validator.cpp
 
-all: $(BUILD_DIR)/mini_compiler $(BUILD_DIR)/lexer_tests $(BUILD_DIR)/parser_tests $(BUILD_DIR)/ir_tests $(BUILD_DIR)/ir_optimizer_tests
+all: $(BUILD_DIR)/mini_compiler $(BUILD_DIR)/lexer_tests $(BUILD_DIR)/parser_tests $(BUILD_DIR)/ir_tests $(BUILD_DIR)/ir_optimizer_tests $(BUILD_DIR)/dead_code_elimination_tests $(BUILD_DIR)/pseudo_assembly_tests $(BUILD_DIR)/integration_tests $(BUILD_DIR)/instruction_count_tests
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 $(BUILD_DIR)/mini_compiler: src/main.cpp $(SOURCES) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) src/main.cpp $(SOURCES) -o $(BUILD_DIR)/mini_compiler
+
+mini_compiler: $(BUILD_DIR)/mini_compiler
 
 $(BUILD_DIR)/lexer_tests: tests/lexer_tests.cpp src/lexer.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) tests/lexer_tests.cpp src/lexer.cpp -o $(BUILD_DIR)/lexer_tests
@@ -32,13 +34,29 @@ $(BUILD_DIR)/ir_tests: tests/ir_tests.cpp $(SOURCES) | $(BUILD_DIR)
 $(BUILD_DIR)/ir_optimizer_tests: tests/ir_optimizer_tests.cpp $(SOURCES) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) tests/ir_optimizer_tests.cpp $(SOURCES) -o $(BUILD_DIR)/ir_optimizer_tests
 
-test: $(BUILD_DIR)/lexer_tests $(BUILD_DIR)/parser_tests $(BUILD_DIR)/ir_tests $(BUILD_DIR)/ir_optimizer_tests
+$(BUILD_DIR)/dead_code_elimination_tests: tests/dead_code_elimination_tests.cpp $(SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) tests/dead_code_elimination_tests.cpp $(SOURCES) -o $(BUILD_DIR)/dead_code_elimination_tests
+
+$(BUILD_DIR)/pseudo_assembly_tests: tests/pseudo_assembly_tests.cpp $(SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) tests/pseudo_assembly_tests.cpp $(SOURCES) -o $(BUILD_DIR)/pseudo_assembly_tests
+
+$(BUILD_DIR)/integration_tests: tests/integration_tests.cpp $(SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) tests/integration_tests.cpp $(SOURCES) -o $(BUILD_DIR)/integration_tests
+
+$(BUILD_DIR)/instruction_count_tests: tests/instruction_count_tests.cpp $(SOURCES) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) tests/instruction_count_tests.cpp $(SOURCES) -o $(BUILD_DIR)/instruction_count_tests
+
+test: all
 	./$(BUILD_DIR)/lexer_tests
 	./$(BUILD_DIR)/parser_tests
 	./$(BUILD_DIR)/ir_tests
 	./$(BUILD_DIR)/ir_optimizer_tests
+	./$(BUILD_DIR)/dead_code_elimination_tests
+	./$(BUILD_DIR)/pseudo_assembly_tests
+	./$(BUILD_DIR)/integration_tests
+	./$(BUILD_DIR)/instruction_count_tests
 
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all test clean
+.PHONY: all test clean mini_compiler

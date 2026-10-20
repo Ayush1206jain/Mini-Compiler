@@ -6,12 +6,16 @@
 //   mini_compiler <source_file> [mode]
 //
 // Modes:
-//   (default)       Run optimized IR through the interpreter
+//   (default)       Run final optimized IR through the interpreter
 //   --tokens        Print token stream from lexer
 //   --ir            Print original unoptimized Three-Address IR
-//   --opt-ir        Print optimized Three-Address IR
+//   --opt-ir        Print Three-Address IR after Day 4 (Constant Folding & Propagation)
+//   --dce-ir        Print Three-Address IR after Day 5 (Dead-Code Elimination)
+//   --asm           Print generated Pseudo-Assembly from final optimized IR
+//   --stats         Print IR instruction-count analysis and optimization reduction
+//   --compare       Compare unoptimized vs. optimized execution and semantic equivalence
 //   --run-unopt     Execute the unoptimized IR
-//   --all           Print tokens, original IR, optimized IR, and execution output
+//   --all           Comprehensive dump of all stages, stats, assembly, and output
 // ============================================================================
 
 #include <iostream>
@@ -27,6 +31,10 @@
 #include "ir_generator.hpp"
 #include "ir_interpreter.hpp"
 #include "ir_optimizer.hpp"
+#include "dead_code_elimination.hpp"
+#include "pseudo_assembly_generator.hpp"
+#include "instruction_count_analyzer.hpp"
+#include "pipeline_validator.hpp"
 
 void printTokens(const std::vector<Token>& tokens, const std::string& filename) {
     std::cout << "Tokens from: " << filename << std::endl;
@@ -60,8 +68,10 @@ void printTokens(const std::vector<Token>& tokens, const std::string& filename) 
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <source_file> [--tokens | --ir | --opt-ir | --run-unopt | --all]" << std::endl;
-        std::cerr << "Example: " << argv[0] << " examples/day3_ir_example.mc" << std::endl;
+        std::cerr << "Usage: " << argv[0]
+                  << " <source_file> [--tokens | --ir | --opt-ir | --dce-ir | --asm | --stats | --compare | --run-unopt | --all]"
+                  << std::endl;
+        std::cerr << "Example: " << argv[0] << " examples/day6_arithmetic.mc --all" << std::endl;
         return 1;
     }
 
@@ -80,6 +90,13 @@ int main(int argc, char* argv[]) {
     file.close();
 
     try {
+        // Fast-path: Comparison mode uses the dedicated PipelineValidator
+        if (mode == "--compare") {
+            ValidationReport report = PipelineValidator::validate(source);
+            std::cout << report.toString();
+            return report.passed ? 0 : 1;
+        }
+
         // Stage 1: Lexer
         Lexer lexer(source);
         std::vector<Token> tokens = lexer.tokenize();
@@ -112,31 +129,67 @@ int main(int argc, char* argv[]) {
             return 0;
         }
 
-        // Stage 4: IR Optimization (Constant Propagation & Folding)
+        // Stage 4: IR Optimization (Day 4: Constant Propagation & Folding)
         IROptimizer optimizer;
-        IRProgram optIR = optimizer.optimize(origIR);
+        IRProgram foldedIR = optimizer.optimize(origIR);
 
         if (mode == "--opt-ir") {
-            std::cout << "=== Optimized Three-Address IR ===" << std::endl;
-            std::cout << optIR.toString();
+            std::cout << "=== Three-Address IR (After Constant Folding & Propagation) ===" << std::endl;
+            std::cout << foldedIR.toString();
+            return 0;
+        }
+
+        // Stage 5: Dead-Code Elimination (Day 5: DCE)
+        DeadCodeElimination dce;
+        IRProgram finalOptIR = dce.eliminate(foldedIR);
+
+        if (mode == "--dce-ir") {
+            std::cout << "=== Three-Address IR (After Dead-Code Elimination) ===" << std::endl;
+            std::cout << finalOptIR.toString();
+            return 0;
+        }
+
+        // Stage 6: Instruction Count Analysis (Day 6)
+        if (mode == "--stats") {
+            auto stats = InstructionCountAnalyzer::analyze(origIR, foldedIR, finalOptIR);
+            std::cout << stats.toString();
+            return 0;
+        }
+
+        // Stage 7: Pseudo-Assembly Code Generation (Day 5: Pseudo-Assembly)
+        PseudoAssemblyGenerator asmGen;
+        PseudoAssemblyProgram pasm = asmGen.generate(finalOptIR);
+
+        if (mode == "--asm") {
+            std::cout << "=== Generated Pseudo-Assembly ===" << std::endl;
+            std::cout << pasm.toString();
             return 0;
         }
 
         if (mode == "--all") {
             printTokens(tokens, filename);
             std::cout << std::endl;
-            std::cout << "=== Original Three-Address IR ===" << std::endl;
+            std::cout << "=== 1. Original Three-Address IR ===" << std::endl;
             std::cout << origIR.toString();
             std::cout << std::endl;
-            std::cout << "=== Optimized Three-Address IR ===" << std::endl;
-            std::cout << optIR.toString();
+            std::cout << "=== 2. IR After Constant Folding & Propagation (Day 4) ===" << std::endl;
+            std::cout << foldedIR.toString();
             std::cout << std::endl;
-            std::cout << "=== Program Output (Optimized) ===" << std::endl;
+            std::cout << "=== 3. IR After Dead-Code Elimination (Day 5) ===" << std::endl;
+            std::cout << finalOptIR.toString();
+            std::cout << std::endl;
+            auto stats = InstructionCountAnalyzer::analyze(origIR, foldedIR, finalOptIR);
+            std::cout << stats.toString();
+            std::cout << std::endl;
+            std::cout << "=== 4. Generated Pseudo-Assembly ===" << std::endl;
+            std::cout << pasm.toString();
+            std::cout << std::endl;
+            std::cout << "=== 5. Program Output (Optimized IR Execution) ===" << std::endl;
         }
 
-        // Stage 5: Execution via IR Interpreter
+        // Stage 8: Execution via IR Interpreter (Executes final optimized IR)
         IRInterpreter interpreter;
-        std::vector<int> output = interpreter.execute(optIR);
+        std::vector<int> output = interpreter.execute(finalOptIR);
 
         for (int val : output) {
             std::cout << val << std::endl;

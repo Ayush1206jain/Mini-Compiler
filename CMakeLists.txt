@@ -16,6 +16,10 @@ set(COMPILER_SOURCES
     src/ir_generator.cpp
     src/ir_interpreter.cpp
     src/ir_optimizer.cpp
+    src/dead_code_elimination.cpp
+    src/pseudo_assembly_generator.cpp
+    src/instruction_count_analyzer.cpp
+    src/pipeline_validator.cpp
 )
 
 # --- Main executable ---
@@ -46,9 +50,33 @@ add_executable(ir_optimizer_tests
     ${COMPILER_SOURCES}
 )
 
+add_executable(dead_code_elimination_tests
+    tests/dead_code_elimination_tests.cpp
+    ${COMPILER_SOURCES}
+)
+
+add_executable(pseudo_assembly_tests
+    tests/pseudo_assembly_tests.cpp
+    ${COMPILER_SOURCES}
+)
+
+add_executable(integration_tests
+    tests/integration_tests.cpp
+    ${COMPILER_SOURCES}
+)
+
+add_executable(instruction_count_tests
+    tests/instruction_count_tests.cpp
+    ${COMPILER_SOURCES}
+)
+
 # Enable CTest
 enable_testing()
 add_test(NAME LexerTests COMMAND lexer_tests)
 add_test(NAME ParserTests COMMAND parser_tests)
 add_test(NAME IRTests COMMAND ir_tests)
 add_test(NAME IROptimizerTests COMMAND ir_optimizer_tests)
+add_test(NAME DeadCodeEliminationTests COMMAND dead_code_elimination_tests)
+add_test(NAME PseudoAssemblyTests COMMAND pseudo_assembly_tests)
+add_test(NAME IntegrationTests COMMAND integration_tests)
+add_test(NAME InstructionCountTests COMMAND instruction_count_tests)
